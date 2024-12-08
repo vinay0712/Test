@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debate Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .message-area {
+            height: calc(100vh - 160px);
+            overflow-y: auto;
+        }
+        .sidebar {
+            height: calc(100vh - 64px);
+            overflow-y: auto;
+        }
+        .message-bubble {
+            max-width: 70%;
+            margin: 8px 0;
+        }
+        .message-team1 {
+            margin-right: auto;
+            background-color: #EBF8FF;  /* Light blue for team 1 */
+        }
+        .message-team2 {
+            margin-left: auto;
+            background-color: #F0FFF4;  /* Light green for team 2 */
+        }
+        .typing-indicator {
+            display: flex;
+            gap: 2px;
+        }
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: #90cdf4;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Main Container -->
+    <div class="flex h-screen">
+        <!-- Left Sidebar -->
+        <div class="w-1/4 bg-white border-r border-gray-200">
+            <!-- Header -->
+            <div class="p-4 border-b border-gray-200 bg-gray-50">
+                <div id="topic-header" class="text-xl font-bold text-gray-800">Loading...</div>
+                <div class="text-sm text-gray-500 mt-1">Active Debate Session</div>
+            </div>
+            
+            <!-- Team Info -->
+            <div class="p-4">
+                <div class="mb-4">
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Your Team</h3>
+                    <div id="team-info" class="p-3 bg-blue-50 rounded-lg">
+                        <div class="font-medium text-blue-800">Loading...</div>
+                        <div class="text-sm text-blue-600 mt-1">Position: Loading...</div>
+                    </div>
+                </div>
+                
+                <!-- Points -->
+                <div class="mb-4">
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Points</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="p-3 bg-green-50 rounded-lg">
+                            <div id="team1-name" class="text-sm text-green-600">Loading...</div>
+                            <div id="team1-points" class="font-bold text-green-800">0</div>
+                        </div>
+                        <div class="p-3 bg-purple-50 rounded-lg">
+                            <div id="team2-name" class="text-sm text-purple-600">Loading...</div>
+                            <div id="team2-points" class="font-bold text-purple-800">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fact Checker -->
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Fact Checker</h3>
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <input id="fact-checker-input" type="text" 
+                            class="w-full p-2 border border-gray-300 rounded-lg mb-2"
+                            placeholder="Enter fact to check...">
+                        <button id="fact-checker-send" 
+                            class="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                            Check Fact
+                        </button>
+                    </div>
+                    <div id="fact-checker-results" class="mt-2 max-h-48 overflow-y-auto"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="flex-1 flex flex-col">
+            <!-- Chat Header -->
+            <div class="p-4 border-b border-gray-200 bg-white flex justify-between items-center">
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-800">Debate Chat</h2>
+                    <p class="text-sm text-gray-500">All messages are recorded for review</p>
+                </div>
+            </div>
+
+            <!-- Messages Area -->
+            <div id="all-messages" class="flex-1 overflow-y-auto p-4 bg-gray-50">
+                <!-- Messages will be inserted here -->
+            </div>
+
+            <!-- Input Area -->
+            <div id="input-area" class="p-4 bg-white border-t border-gray-200">
+                <div class="flex items-center space-x-2">
+                    <input id="message-input" type="text" 
+                        class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Type your message... (use ? for questions, () for answers)">
+                    <button id="record-button" 
+                        class="bg-red-500 text-white p-3 rounded-lg hover:bg-red-600 transition-colors">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button id="send-button" 
+                        class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="w-1/4 bg-white border-l border-gray-200">
+            <!-- Questions Header -->
+            <div class="p-4 border-b border-gray-200 bg-gray-50">
+                <h2 class="text-lg font-semibold text-gray-800">Questions & Rebuttals</h2>
+            </div>
+
+            <!-- Questions List -->
+            <div id="questions" class="p-4 space-y-2">
+                <!-- Questions will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Question Verification Modal -->
+    <div id="question-verification" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <h3 class="text-lg font-semibold mb-4">Verify Question</h3>
+            <div id="question-text" class="mb-6 p-4 bg-gray-50 rounded-lg"></div>
+            <div class="flex justify-end space-x-3">
+                <button id="disagree-button" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    Reject
+                </button>
+                <button id="agree-button" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                    Accept
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            const topic = localStorage.getItem('debateTopic');
+            const team = localStorage.getItem('debateTeam');
+            const team1Name = localStorage.getItem('team1Name');
+            const team2Name = localStorage.getItem('team2Name');
+            const team1Position = localStorage.getItem('team1Position');
+            const team2Position = localStorage.getItem('team2Position');
+
+            // Update header
+            document.getElementById('topic-header').textContent = topic;
+            
+            // Update team info for participants
+            const teamInfo = document.getElementById('team-info');
+            teamInfo.innerHTML = `
+                <div class="font-medium text-blue-800">${team === 'team1' ? team1Name : team2Name}</div>
+                <div class="text-sm text-blue-600 mt-1">Position: ${team === 'team1' ? team1Position : team2Position}</div>
+            `;
+        }
+
+        document.getElementById('message-input').addEventListener('input', function(event) {
+            const messageInput = event.target;
+            if (messageInput.value.endsWith('(')) {
+                messageInput.value += ')';
+                messageInput.setSelectionRange(messageInput.value.length - 1, messageInput.value.length - 1);
+            }
+        });
+
+        document.getElementById('message-input').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                document.getElementById('send-button').click();
+            }
+        });
+
+        const username = localStorage.getItem('username');
+
+        let points = {
+            team1: 0,
+            team2: 0
+        };
+
+        document.getElementById('send-button').addEventListener('click', function() {
+            const messageInput = document.getElementById('message-input');
+            const messageText = messageInput.value.trim();
+
+            if (messageText !== '') {
+                const messageContainer = document.getElementById('all-messages');
+                const newMessage = document.createElement('div');
+                const team = localStorage.getItem('debateTeam');
+                const teamName = team === 'team1' ? 
+                    localStorage.getItem('team1Name') : 
+                    localStorage.getItem('team2Name');
+
+                // Create message element with sender info
+                newMessage.className = `message-bubble p-4 rounded-lg shadow-sm ${
+                    team === 'team1' ? 'message-team1' : 'message-team2'
+                }`;
+                
+                newMessage.innerHTML = `
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="font-medium text-sm ${
+                            team === 'team1' ? 'text-blue-600' : 'text-green-600'
+                        }">${teamName}</span>
+                        <span class="text-gray-400 text-xs">•</span>
+                        <span class="text-gray-600 text-sm">${username}</span>
+                        <span class="text-gray-400 text-xs ml-auto">${new Date().toLocaleTimeString()}</span>
+                    </div>
+                    <div class="text-gray-800">${messageText}</div>
+                `;
+
+                messageContainer.appendChild(newMessage);
+                messageInput.value = '';
+
+                // Auto scroll to bottom
+                messageContainer.scrollTop = messageContainer.scrollHeight;
+
+                if (messageText.endsWith('?')) {
+                    if (team === 'team1') {
+                        points.team1 += 2;
+                    } else {
+                        points.team2 += 2;
+                    }
+                    updatePoints();
+                    showQuestionVerification(messageText);
+                } 
+                else if (messageText.startsWith('(') && messageText.endsWith(')')) {
+                    const otherTeam = team === 'team1' ? 'team2' : 'team1';
+                    if (otherTeam === 'team1') {
+                        points.team1 = Math.max(0, points.team1 - 1);
+                    } else {
+                        points.team2 = Math.max(0, points.team2 - 1);
+                    }
+                    updatePoints();
+                }
+            }
+        });
+
+        document.getElementById('fact-checker-send').addEventListener('click', async function() {
+            const factCheckerInput = document.getElementById('fact-checker-input');
+            const factCheckerText = factCheckerInput.value.trim();
+            const resultsContainer = document.getElementById('fact-checker-results');
+
+            if (factCheckerText !== '') {
+                // Show loading state
+                const loadingDiv = document.createElement('div');
+                loadingDiv.className = 'p-2 border-b border-gray-300 bg-gray-100 rounded-lg';
+                loadingDiv.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
+                        Checking fact...
+                    </div>
+                `;
+                resultsContainer.appendChild(loadingDiv);
+
+                try {
+                    // Replace localhost URL with your Render.com backend URL
+                    const API_URL = 'http://localhost:3000';
+
+                    // Update the fetch call
+                    const response = await fetch(`${API_URL}/api/fact-check`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            statement: factCheckerText,
+                            topic: localStorage.getItem('debateTopic')
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                    // Remove loading state
+                    resultsContainer.removeChild(loadingDiv);
+
+                    // Create result element
+                    const resultDiv = document.createElement('div');
+                    resultDiv.className = `p-2 border-b border-gray-300 rounded-lg mb-2 ${
+                        data.isFactual ? 'bg-green-100' : 'bg-red-100'
+                    }`;
+                    
+                    resultDiv.innerHTML = `
+                        <div class="flex items-center mb-1">
+                            <span class="font-bold ${data.isFactual ? 'text-green-700' : 'text-red-700'}">
+                                ${data.isFactual ? '✓ True' : '✗ False'}
+                            </span>
+                        </div>
+                        <div class="text-sm">
+                            <strong>Statement:</strong> ${factCheckerText}
+                        </div>
+                        <div class="text-sm mt-1">
+                            <strong>Explanation:</strong> ${data.explanation}
+                        </div>
+                        ${data.sources ? `
+                            <div class="text-xs mt-1 text-gray-600">
+                                <strong>Sources:</strong> ${data.sources}
+                            </div>
+                        ` : ''}
+                    `;
+
+                    resultsContainer.appendChild(resultDiv);
+                    factCheckerInput.value = '';
+
+                } catch (error) {
+                    // Remove loading state
+                    resultsContainer.removeChild(loadingDiv);
+
+                    // Show error message
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'p-2 border-b border-gray-300 bg-red-100 rounded-lg';
+                    errorDiv.innerHTML = `
+                        <div class="text-red-700">
+                            Error checking fact. Please try again later.
+                        </div>
+                    `;
+                    resultsContainer.appendChild(errorDiv);
+                }
+            }
+        });
+
+        // Add Enter key support for fact checker
+        document.getElementById('fact-checker-input').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                document.getElementById('fact-checker-send').click();
+            }
+        });
+
+        let isRecording = false;
+        let mediaRecorder;
+        let audioChunks = [];
+
+        document.getElementById('record-button').addEventListener('click', async function() {
+            const recordButton = document.getElementById('record-button');
+            if (!isRecording) {
+                // Start recording
+                isRecording = true;
+                recordButton.classList.remove('bg-red-500');
+                recordButton.classList.add('bg-green-500');
+                recordButton.innerHTML = '<i class="fas fa-stop"></i>';
+
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+
+                mediaRecorder.ondataavailable = function(event) {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async function() {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audio = new Audio(audioUrl);
+
+                    const messageContainer = document.getElementById('all-messages');
+                    const team = localStorage.getItem('debateTeam');
+                    const teamName = team === 'team1' ? 
+                        localStorage.getItem('team1Name') : 
+                        localStorage.getItem('team2Name');
+
+                    const newMessage = document.createElement('div');
+                    newMessage.className = `message-bubble p-4 rounded-lg shadow-sm ${
+                        team === 'team1' ? 'message-team1' : 'message-team2'
+                    }`;
+                    
+                    newMessage.innerHTML = `
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="font-medium text-sm ${
+                                team === 'team1' ? 'text-blue-600' : 'text-green-600'
+                            }">${teamName}</span>
+                            <span class="text-gray-400 text-xs">•</span>
+                            <span class="text-gray-600 text-sm">${username}</span>
+                            <span class="text-gray-400 text-xs ml-auto">${new Date().toLocaleTimeString()}</span>
+                            <span class="text-xs text-gray-400"><i class="fas fa-microphone ml-2"></i></span>
+                        </div>
+                        <div class="text-gray-800">
+                            <audio controls src="${audioUrl}" class="w-full"></audio>
+                        </div>
+                    `;
+
+                    messageContainer.appendChild(newMessage);
+                    messageContainer.scrollTop = messageContainer.scrollHeight;
+                };
+
+                mediaRecorder.start();
+            } else {
+                // Stop recording
+                isRecording = false;
+                recordButton.classList.remove('bg-green-500');
+                recordButton.classList.add('bg-red-500');
+                recordButton.innerHTML = '<i class="fas fa-microphone"></i>';
+
+                mediaRecorder.stop();
+                audioChunks = [];
+            }
+        });
+
+        function updatePoints() {
+            document.getElementById('team1-points').textContent = points.team1;
+            document.getElementById('team2-points').textContent = points.team2;
+        }
+
+        function showQuestionVerification(questionText) {
+            const questionVerification = document.getElementById('question-verification');
+            const questionTextElement = document.getElementById('question-text');
+            questionTextElement.textContent = questionText;
+            questionVerification.classList.remove('hidden');
+
+            document.getElementById('agree-button').onclick = function() {
+                const questionsContainer = document.getElementById('questions');
+                const newQuestion = document.createElement('div');
+                newQuestion.className = 'p-2 border-b border-gray-300 bg-purple-100 rounded-lg';
+                newQuestion.textContent = questionText;
+
+                // Store the team that asked the question
+                const askingTeam = localStorage.getItem('debateTeam');
+                newQuestion.dataset.team = askingTeam;
+
+                questionsContainer.appendChild(newQuestion);
+                questionVerification.classList.add('hidden');
+            };
+
+            document.getElementById('disagree-button').onclick = function() {
+                // If question is rejected, remove the points that were added
+                const team = localStorage.getItem('debateTeam');
+                if (team === 'team1') {
+                    points.team1 = Math.max(0, points.team1 - 2);
+                } else {
+                    points.team2 = Math.max(0, points.team2 - 2);
+                }
+                updatePoints();
+                questionVerification.classList.add('hidden');
+            };
+        }
+    </script>
+</body>
+</html>
